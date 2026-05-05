@@ -14,11 +14,19 @@
 # limitations under the License.
 
 from nemo_run.core.execution.dgxcloud import DGXCloudExecutor
-from nemo_run.core.execution.lepton import LeptonExecutor
 from nemo_run.core.execution.local import LocalExecutor
 from nemo_run.core.execution.kubeflow import KubeflowExecutor
 from nemo_run.core.execution.skypilot import SkypilotExecutor
 from nemo_run.core.execution.slurm import SlurmExecutor
+
+
+def __getattr__(name: str):
+    if name == "LeptonExecutor":
+        from nemo_run.core.execution.lepton import LeptonExecutor
+
+        return LeptonExecutor
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+
 
 __all__ = [
     "LocalExecutor",

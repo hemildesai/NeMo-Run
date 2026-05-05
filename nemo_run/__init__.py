@@ -26,7 +26,6 @@ from nemo_run.core.execution.dgxcloud import DGXCloudExecutor
 from nemo_run.core.execution.docker import DockerExecutor
 from nemo_run.core.execution.kubeflow import KubeflowExecutor
 from nemo_run.core.execution.launcher import FaultTolerance, SlurmRay, SlurmTemplate, Torchrun
-from nemo_run.core.execution.lepton import LeptonExecutor
 from nemo_run.core.execution.local import LocalExecutor
 from nemo_run.core.execution.skypilot import SkypilotExecutor
 from nemo_run.core.execution.slurm import SlurmExecutor
@@ -39,6 +38,15 @@ from nemo_run.package_info import __package_name__, __version__
 from nemo_run.run.api import run
 from nemo_run.run.experiment import Experiment
 from nemo_run.run.plugin import ExperimentPlugin as Plugin
+
+
+def __getattr__(name: str):
+    if name == "LeptonExecutor":
+        from nemo_run.core.execution.lepton import LeptonExecutor
+
+        return LeptonExecutor
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+
 
 __all__ = [
     "autoconvert",

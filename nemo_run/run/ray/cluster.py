@@ -17,11 +17,20 @@ from dataclasses import dataclass
 from typing import Optional, Type
 
 from nemo_run.core.execution.base import Executor
-from nemo_run.core.execution.lepton import LeptonExecutor
 from nemo_run.core.execution.slurm import SlurmExecutor
 from nemo_run.core.frontend.console.api import configure_logging
-from nemo_run.run.ray.lepton import LeptonRayCluster
 from nemo_run.run.ray.slurm import SlurmRayCluster
+
+# Import guard for Lepton dependencies
+try:
+    from nemo_run.core.execution.lepton import LeptonExecutor
+    from nemo_run.run.ray.lepton import LeptonRayCluster
+
+    _LEPTON_RAY_AVAILABLE = True
+except ImportError:
+    LeptonExecutor = None
+    LeptonRayCluster = None
+    _LEPTON_RAY_AVAILABLE = False
 
 # Import guard for Kubernetes dependencies
 try:
@@ -45,8 +54,10 @@ class RayCluster:
         configure_logging(level=self.log_level)
         backend_map: dict[Type[Executor], Type] = {
             SlurmExecutor: SlurmRayCluster,
-            LeptonExecutor: LeptonRayCluster,
         }
+
+        if _LEPTON_RAY_AVAILABLE and LeptonExecutor is not None and LeptonRayCluster is not None:
+            backend_map[LeptonExecutor] = LeptonRayCluster
 
         if _KUBERAY_AVAILABLE and KubeRayExecutor is not None and KubeRayCluster is not None:
             backend_map[KubeRayExecutor] = KubeRayCluster

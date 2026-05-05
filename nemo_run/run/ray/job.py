@@ -17,11 +17,20 @@ from dataclasses import dataclass
 from typing import Any, Optional, Type
 
 from nemo_run.core.execution.base import Executor
-from nemo_run.core.execution.lepton import LeptonExecutor
 from nemo_run.core.execution.slurm import SlurmExecutor
 from nemo_run.core.frontend.console.api import configure_logging
-from nemo_run.run.ray.lepton import LeptonRayJob
 from nemo_run.run.ray.slurm import SlurmRayJob
+
+# Import guard for Lepton dependencies
+try:
+    from nemo_run.core.execution.lepton import LeptonExecutor
+    from nemo_run.run.ray.lepton import LeptonRayJob
+
+    _LEPTON_RAY_AVAILABLE = True
+except ImportError:
+    LeptonExecutor = None
+    LeptonRayJob = None
+    _LEPTON_RAY_AVAILABLE = False
 
 # Import guard for Kubernetes dependencies
 try:
@@ -49,9 +58,11 @@ class RayJob:
     def __post_init__(self) -> None:  # noqa: D401 – simple implementation
         configure_logging(level=self.log_level)
         backend_map: dict[Type[Executor], Type[Any]] = {
-            LeptonExecutor: LeptonRayJob,
             SlurmExecutor: SlurmRayJob,
         }
+
+        if _LEPTON_RAY_AVAILABLE and LeptonExecutor is not None and LeptonRayJob is not None:
+            backend_map[LeptonExecutor] = LeptonRayJob
 
         if _KUBERAY_AVAILABLE and KubeRayExecutor is not None and KubeRayJob is not None:
             backend_map[KubeRayExecutor] = KubeRayJob
@@ -62,7 +73,7 @@ class RayJob:
         backend_cls = backend_map[self.executor.__class__]
         self.backend = backend_cls(name=self.name, executor=self.executor)
 
-        if isinstance(self.executor, LeptonExecutor):
+        if LeptonExecutor is not None and isinstance(self.executor, LeptonExecutor):
             self.backend.cluster_name = self.cluster_name
             self.backend.cluster_ready_timeout = self.cluster_ready_timeout
 
